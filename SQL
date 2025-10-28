@@ -233,3 +233,149 @@ hashtag#AWS_Commands:-
 2. *Create an EC2 instance*: 'aws ec2 run-instances --image-id <image_id> --instance-type <instance_type>`
 3. **Start an EC2 instance
 
+
+----------------------------------------------------------------------------------------------------------------------------------------------
+
+/*MySQL daily troubleshooting cheatsheet*/ 
+
+-- Check MySQL version and uptime
+SELECT VERSION(), NOW(), @@hostname;
+
+-- Show all connected threads
+SHOW FULL PROCESSLIST;
+
+-- Quick summary of active threads
+SHOW STATUS LIKE 'Threads%';
+
+-- Check current server configuration variables
+SHOW VARIABLES;
+
+-- Check server uptime
+SHOW GLOBAL STATUS LIKE 'Uptime';
+
+-- Show the 10 most time-consuming queries
+SELECT * FROM sys.statement_analysis ORDER BY avg_latency DESC LIMIT 10;
+
+-- Analyze query execution plan
+EXPLAIN SELECT * FROM transactions WHERE user_id = 100;
+
+-- See actual execution time (MySQL 8+)
+EXPLAIN ANALYZE SELECT * FROM transactions WHERE user_id = 100;
+
+-- Show table I/O and index usage stats
+SHOW TABLE STATUS LIKE 'transactions';
+
+-- Check slow queries (enable if needed)
+SET GLOBAL slow_query_log = 1;
+SHOW VARIABLES LIKE 'slow_query_log_file';
+
+-- View number of slow queries
+SHOW GLOBAL STATUS LIKE 'Slow_queries';
+
+/*Index and schema healthcheks*/
+
+-- Show indexes on a table
+SHOW INDEX FROM users;
+
+-- Identify missing indexes (manual approach)
+EXPLAIN SELECT * FROM users WHERE email = 'abc@example.com';
+
+-- Analyze table statistics for optimizer
+ANALYZE TABLE users;
+
+-- Check for fragmented tables (may need OPTIMIZE)
+SHOW TABLE STATUS WHERE Data_free > 0;
+
+-- Reclaim space and optimize
+OPTIMIZE TABLE users;
+
+/*locking and dead-locking*/
+
+-- Check for transactions waiting on locks
+SELECT * FROM performance_schema.data_locks;
+
+-- Check lock waits
+SELECT * FROM performance_schema.data_lock_waits;
+
+-- Inspect InnoDB internal lock status
+SHOW ENGINE INNODB STATUS \G
+
+-- Identify the blocking session
+SELECT * FROM performance_schema.data_lock_waits \G
+
+-- Kill a problematic query (use thread_id from PROCESSLIST)
+KILL <thread_id>;
+
+/*Innodb and Memory performence*/
+
+-- Show InnoDB engine status (performance + locks)
+SHOW ENGINE INNODB STATUS \G
+
+-- View InnoDB buffer pool usage
+SHOW STATUS LIKE 'Innodb_buffer_pool%';
+
+-- Buffer pool hit ratio (should be > 95%)
+SELECT ROUND((1 - (SUM(if(variable_name='Innodb_buffer_pool_reads',variable_value,0)) /
+                   SUM(if(variable_name='Innodb_buffer_pool_read_requests',variable_value,1))) ) * 100, 2)
+       AS buffer_pool_hit_ratio
+FROM performance_schema.global_status;
+
+-- Show global memory usage
+SHOW GLOBAL STATUS LIKE 'Bytes%';
+
+
+/*Backup and recovery*/
+
+# Logical backup of one DB
+mysqldump -u root -p labdb > backup_labdb.sql
+
+# Restore
+mysql -u root -p labdb < backup_labdb.sql
+
+# Backup all databases
+mysqldump -u root -p --all-databases > full_backup.sql
+
+/*performance schema*/
+
+-- Check the largest consumers of query time
+SELECT * FROM sys.statement_analysis ORDER BY total_latency DESC LIMIT 10;
+
+-- Check top I/O consuming tables
+SELECT * FROM sys.schema_table_statistics ORDER BY io_read DESC LIMIT 10;
+
+-- Check memory usage per thread
+SELECT * FROM sys.memory_by_thread_by_current_bytes ORDER BY current_allocated DESC LIMIT 10;
+
+-- Find which queries caused the most temp tables
+SELECT * FROM sys.statements_with_temp_tables ORDER BY total_latency DESC LIMIT 10;
+
+/*security schema*/
+
+-- List all MySQL users
+SELECT user, host FROM mysql.user;
+
+-- View privileges for a specific user
+SHOW GRANTS FOR 'labuser'@'%';
+
+-- Find users with SUPER privilege (potential risk)
+SELECT user, host FROM mysql.user WHERE Super_priv='Y';
+
+-- Check SSL connections
+SHOW STATUS LIKE 'Ssl_%';
+
+# Check running MySQL containers
+docker ps | grep mysql
+
+# Access container shell
+docker exec -it mysql-primary bash
+
+# Connect directly to MySQL
+docker exec -it mysql-primary mysql -uroot -prootpass
+
+# Check MySQL log file
+docker exec -it mysql-primary cat /var/lib/mysql/mysql-slow.log
+
+# Check disk space used by MySQL data
+du -sh /var/lib/mysql
+
+
