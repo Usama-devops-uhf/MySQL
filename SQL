@@ -378,4 +378,13 @@ docker exec -it mysql-primary cat /var/lib/mysql/mysql-slow.log
 # Check disk space used by MySQL data
 du -sh /var/lib/mysql
 
+--------------------Create MYSQL User ----------------------------------------
+CREATE USER 'vicinity'@'%' IDENTIFIED BY 'StrongPassword@123';
+
+GRANT ALL PRIVILEGES ON vicinity_new.* TO 'vicinity'@'%';
+
+FLUSH PRIVILEGES;
+
+
+
 
